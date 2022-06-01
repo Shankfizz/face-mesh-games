@@ -4,12 +4,16 @@ import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import { createRouter, createWebHistory } from 'vue-router';
 
-import Test from './components/Test.vue';
 import HomePage from './components/HomePage.vue';
+import PacMan from './components/PacMan.vue';
+import FlappyBird from './components/FlappyBird.vue';
+import FaceMesh from './components/FaceMesh.vue';
 
 const routes = [
   { name: "home", path: '/', component: HomePage },
-  { name: "test", path: '/test', component: Test },
+  { name: "pacman", path: '/pacman', component: PacMan },
+  { name: "flappybird", path: '/flappybird', component: FlappyBird },
+  { name: "facemesh", path: '/facemesh', component: FaceMesh },
 ]
 
 const router = createRouter({

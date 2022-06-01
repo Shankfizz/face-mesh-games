@@ -1,9 +1,9 @@
 <script setup>
 
-  import { onMounted, ref } from 'vue';
+  import { onMounted } from 'vue';
   import { useRouter } from 'vue-router';
 
-  import { FaceMeshDetection, DIRECTION } from './FaceMeshDetection.js';
+  import { FaceMeshDetection } from './FaceMeshDetection.js';
   import PacManImageUrl from '@/assets/pacman.jpg';
   import FlappyBirdImageUrl from '@/assets/flappybird.jpg';
   import FaceMeshImageUrl from '@/assets/facemesh.gif';
@@ -19,7 +19,7 @@
   });
 
   onMounted(() => {
-    faceMeshDet.init();
+    // faceMeshDet.init();
   });
 
 </script>
@@ -28,7 +28,7 @@
   <el-row id="main" justify="center">
     <el-col :offset="0" :span="6">
 
-      <div class="card" @click="goto('test')">
+      <div class="card" @click="goto('pacman')">
         <span class="text"><h1>PAC MAN</h1><h2>PLAY!</h2></span>
         <img class="image" :src="PacManImageUrl" />
       </div>
@@ -36,7 +36,7 @@
     </el-col>
     <el-col :offset="0" :span="6">
 
-      <div class="card" @click="goto('test')">
+      <div class="card" @click="goto('flappybird')">
         <span class="text"><h1>Flappy Bird</h1><h2>PLAY!</h2></span>
         <img class="image" :src="FlappyBirdImageUrl" />
       </div>
@@ -44,7 +44,7 @@
     </el-col>
     <el-col :offset="0" :span="6">
 
-      <div class="card" @click="goto('test')">
+      <div class="card" @click="goto('facemesh')">
         <span class="text"><h1>Face Mesh</h1><h2>Try It!</h2></span>
         <img class="image" :src="FaceMeshImageUrl" />
       </div>
