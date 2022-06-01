@@ -26,6 +26,8 @@ class FaceMeshDetection {
   #upThres = 0.7;
   #downThres = 0.35;
 
+  #debounceTime = 200; // ms
+
   constructor(cb) {
 
     this.faceMesh = null;
@@ -33,6 +35,13 @@ class FaceMeshDetection {
     this.canvasElement = null;
     this.videoElement = document.createElement('video');
     this.cb = cb;
+    this.lastDir = DIRECTION.NONE;
+
+  }
+
+  setDebounceTime(time) {
+
+    this.#debounceTime = time;
 
   }
 
@@ -56,7 +65,25 @@ class FaceMeshDetection {
       minTrackingConfidence: 0.5
     });
 
-    this.faceMesh.onResults(results => this.onResults(results));
+    let timer = null;
+    this.faceMesh.onResults(results => {
+
+      if (this.canvasElement) this.drawResults(results);
+      let dir = this.onResults(results);
+
+      if (dir != this.lastDir) { // 方向改变, 立即回调
+        this.lastDir = dir;
+        this.cb(dir);
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      } else if (!timer) { // 方向不变, 需要考虑debounceTime
+        timer = setTimeout(() => timer = null, this.#debounceTime);
+        this.cb(dir);
+      }
+
+    });
 
     this.camera = new Camera(this.videoElement, {
       onFrame: async () => {
@@ -86,16 +113,33 @@ class FaceMeshDetection {
 
   }
 
-  onResults(results) {
+  drawResults(results) {
 
-    if (results.multiFaceLandmarks.length == 0) { // 未检测到人脸
-      this.cb(DIRECTION.NONE);
+    if (this.canvasElement) {
       this.canvasCtx.save();
       this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
       this.canvasCtx.drawImage(results.image, 0, 0, this.canvasElement.width, this.canvasElement.height);
+      if (results.multiFaceLandmarks.length != 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_TESSELATION, {color: '#C0C0C070', lineWidth: 1});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_RIGHT_EYE, {color: '#FF3030'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_RIGHT_EYEBROW, {color: '#FF3030'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_RIGHT_IRIS, {color: '#FF3030'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_LEFT_EYE, {color: '#30FF30'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_LEFT_EYEBROW, {color: '#30FF30'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_LEFT_IRIS, {color: '#30FF30'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_FACE_OVAL, {color: '#E0E0E0'});
+        drawConnectors(this.canvasCtx, landmarks, FACEMESH_LIPS, {color: '#E0E0E0'});
+      }
       this.canvasCtx.restore();
-      return;
     }
+
+  }
+
+  onResults(results) {
+
+    if (results.multiFaceLandmarks.length == 0) // 未检测到人脸
+      return DIRECTION.NONE;
 
     const landmarks = results.multiFaceLandmarks[0];
     let leftEye = this.getMidPoint(landmarks, this.#leftEyePoints);
@@ -105,29 +149,14 @@ class FaceMeshDetection {
     let normal = new THREE.Vector3();
     triangle.getNormal(normal);
 
-    if (normal.x > this.#rightThres) this.cb(DIRECTION.RIGHT);
-    else if (normal.x < this.#leftThres) this.cb(DIRECTION.LEFT);
-    else if (normal.y > this.#upThres) this.cb(DIRECTION.UP);
-    else if (normal.y < this.#downThres) this.cb(DIRECTION.DOWN);
-    else this.cb(DIRECTION.NONE);
+    let result;
+    if (normal.x > this.#rightThres) result = DIRECTION.RIGHT;
+    else if (normal.x < this.#leftThres) result = DIRECTION.LEFT;
+    else if (normal.y > this.#upThres) result = DIRECTION.UP;
+    else if (normal.y < this.#downThres) result = DIRECTION.DOWN;
+    else result = DIRECTION.NONE;
 
-
-    // 绘制
-    if (this.canvasElement) {
-      this.canvasCtx.save();
-      this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
-      this.canvasCtx.drawImage(results.image, 0, 0, this.canvasElement.width, this.canvasElement.height);
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_TESSELATION, {color: '#C0C0C070', lineWidth: 1});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_RIGHT_EYE, {color: '#FF3030'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_RIGHT_EYEBROW, {color: '#FF3030'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_RIGHT_IRIS, {color: '#FF3030'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_LEFT_EYE, {color: '#30FF30'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_LEFT_EYEBROW, {color: '#30FF30'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_LEFT_IRIS, {color: '#30FF30'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_FACE_OVAL, {color: '#E0E0E0'});
-      drawConnectors(this.canvasCtx, landmarks, FACEMESH_LIPS, {color: '#E0E0E0'});
-      this.canvasCtx.restore();
-    }
+    return result;
 
   }
 
